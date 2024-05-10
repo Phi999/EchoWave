@@ -1,37 +1,51 @@
+#include <RH_ASK.h>
+#include <SPI.h>
 #include <Nunchuk.h>
-#include <Wire.h> 
+#include <Wire.h>
+RH_ASK rf_driver;
+int normalx = 0;
+int normaly = 0;
+int step = 50;
 void setup() {
-  // put your setup code here, to run once:
-      Serial.begin(9600); 
-	   Wire.begin(); 
-       //  Wire.setClock(400000);
+  Serial.begin(9600);
 
-	   nunchuk_init(); 
+  // Initialize ASK Object
+  rf_driver.init();
+  Wire.begin();
+  //  Wire.setClock(400000);
 
-
+  nunchuk_init();
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  	   if (nunchuk_read()) { 
-	       // Work with nunchuk_data 
+  if (nunchuk_read()) {
+    // Work with nunchuk_data
+    nunchuk_print();
+    int xValue = nunchuk_joystickX();
+    int yValue = nunchuk_joystickY();
+    //Preia datele de la joystick si le trimite prin radio
+    Serial.print("x = ");
+    Serial.print(xValue);
+    Serial.print(", y = ");
+    Serial.println(yValue);
+    const char *msg = "no";
+    if (yValue > normalx + step) {
+      msg = "up";
+    }
+    if (yValue < normalx - step) {
+      msg = "dw";
+    }
+    if (xValue < normaly - step) {
+      msg = "lt";
 
-	       int x =  nunchuk_joystickX();
-         int y =  nunchuk_joystickY();
-         int angle = nunchuk_joystick_angle();
-         int pitch = nunchuk_pitch();
-         int roll = nunchuk_roll();
-         Serial.print(x);
-         Serial.print(" ");
-         Serial.print(y);
-         Serial.print(" ");
-         Serial.print(angle);
-         Serial.print(" ");
-         Serial.print(pitch);
-         Serial.print(" ");
-         Serial.println(roll);
-	   } 
-	   delay(10); 
+    }
+    if (xValue > normaly + step) {
+      msg = "rt";
 
-
+    }
+    Serial.println(msg);
+    rf_driver.send((uint8_t *)msg, strlen(msg));
+    rf_driver.waitPacketSent();
+  }
+  delay(10);
 }
